@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://kit.fontawesome.com/5f59ca6ad3.js" crossorigin="anonymous"></script>
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f9fbfe;
+            padding: 40px 0;
+        }
+
+        .todos-heading,
+        .todo-items-heading {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .create-task-heading,
+        .todo-items-heading {
+            font-size: 28px;
+        }
+
+        .todo-user-input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #e4e7eb;
+            margin-top: 10px;
+        }
+
+        .button {
+            background-color: #4c63b6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            margin: 10px 5px 30px 0;
+        }
+
+        .todo-item-container {
+            margin-top: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 10px 15px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .checkbox-label {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .checked {
+            text-decoration: line-through;
+            color: gray;
+        }
+
+        .fa-trash-alt {
+            cursor: pointer;
+            color: #dc3545;
+        }
+
+        .todo-date {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .filter-select {
+            margin: 10px 0 20px 0;
+            padding: 6px 12px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="todos-heading">To-Do List</h1>
+        <h2 class="create-task-heading">Create <span class="text-primary">Task</span></h2>
+        <input type="text" id="todoUserInput" class="todo-user-input" placeholder="What needs to be done?">
+        <button class="button" id="addTodoButton">Add</button>
+        <button class="button btn-danger" id="clearAllButton">Clear All</button>
+
+        <select id="filterSelect" class="filter-select">
+            <option value="all">All</option>
+            <option value="completed">Completed</option>
+            <option value="active">Active</option>
+        </select>
+
+        <h2 class="todo-items-heading">My <span class="text-success">Tasks</span></h2>
+        <ul id="todoItemsContainer" class="list-unstyled"></ul>
+        <button class="button" id="saveTodoButton">Save</button>
+    </div>
+
+    <script>
+        let todoItemsContainer = document.getElementById("todoItemsContainer");
+        let addTodoButton = document.getElementById("addTodoButton");
+        let saveTodoButton = document.getElementById("saveTodoButton");
+        let clearAllButton = document.getElementById("clearAllButton");
+        let filterSelect = document.getElementById("filterSelect");
+
+        function getTodoListFromLocalStorage() {
+            let stringifiedTodoList = localStorage.getItem("todoList");
+            let parsedTodoList = JSON.parse(stringifiedTodoList);
+            return parsedTodoList === null ? [] : parsedTodoList;
+        }
+
+        let todoList = getTodoListFromLocalStorage();
+        let todosCount = todoList.length;
+
+        function saveTodoListToLocalStorage() {
+            localStorage.setItem("todoList", JSON.stringify(todoList));
+        }
+
+        function onAddTodo() {
+            let userInputElement = document.getElementById("todoUserInput");
+            let userInputValue = userInputElement.value.trim();
+
+            if (userInputValue === "") {
+                alert("Please enter a task.");
+                return;
+            }
+
+            todosCount++;
+            let newTodo = {
+                text: userInputValue,
+                uniqueNo: todosCount,
+                isChecked: false,
+                date: new Date().toLocaleString()
+            };
+
+            todoList.push(newTodo);
+            createAndAppendTodo(newTodo);
+            userInputElement.value = "";
+        }
+
+        function onTodoStatusChange(checkboxId, labelId, todoId) {
+            let checkboxElement = document.getElementById(checkboxId);
+            let labelElement = document.getElementById(labelId);
+            labelElement.classList.toggle("checked");
+
+            let todoIndex = todoList.findIndex(todo => "todo" + todo.uniqueNo === todoId);
+            if (todoIndex !== -1) {
+                todoList[todoIndex].isChecked = checkboxElement.checked;
+            }
+        }
+
+        function onDeleteTodo(todoId) {
+            let todoElement = document.getElementById(todoId);
+            todoItemsContainer.removeChild(todoElement);
+            todoList = todoList.filter(todo => "todo" + todo.uniqueNo !== todoId);
+        }
+
+        function createAndAppendTodo(todo) {
+            if (filterSelect.value === "completed" && !todo.isChecked) return;
+            if (filterSelect.value === "active" && todo.isChecked) return;
+
+            let todoId = "todo" + todo.uniqueNo;
+            let checkboxId = "checkbox" + todo.uniqueNo;
+            let labelId = "label" + todo.uniqueNo;
+
+            let todoElement = document.createElement("li");
+            todoElement.id = todoId;
+            todoElement.className = "todo-item-container";
+
+            let checkboxElement = document.createElement("input");
+            checkboxElement.type = "checkbox";
+            checkboxElement.id = checkboxId;
+            checkboxElement.checked = todo.isChecked;
+            checkboxElement.className = "mr-3";
+            checkboxElement.onclick = () => onTodoStatusChange(checkboxId, labelId, todoId);
+
+            let labelElement = document.createElement("label");
+            labelElement.id = labelId;
+            labelElement.htmlFor = checkboxId;
+            labelElement.className = "checkbox-label";
+            labelElement.textContent = todo.text;
+            if (todo.isChecked) labelElement.classList.add("checked");
+
+            let dateElement = document.createElement("div");
+            dateElement.className = "todo-date";
+            dateElement.textContent = todo.date;
+
+            let deleteIcon = document.createElement("i");
+            deleteIcon.className = "far fa-trash-alt";
+            deleteIcon.onclick = () => onDeleteTodo(todoId);
+
+            let contentWrapper = document.createElement("div");
+            contentWrapper.appendChild(labelElement);
+            contentWrapper.appendChild(dateElement);
+
+            todoElement.appendChild(checkboxElement);
+            todoElement.appendChild(contentWrapper);
+            todoElement.appendChild(deleteIcon);
+
+            todoItemsContainer.appendChild(todoElement);
+        }
+
+        clearAllButton.onclick = function () {
+            todoItemsContainer.innerHTML = "";
+            todoList = [];
+            todosCount = 0;
+            saveTodoListToLocalStorage();
+        };
+
+        addTodoButton.onclick = function () {
+            onAddTodo();
+            saveTodoListToLocalStorage();
+            renderTodoList();
+        };
+
+        saveTodoButton.onclick = saveTodoListToLocalStorage;
+        filterSelect.onchange = renderTodoList;
+
+        function renderTodoList() {
+            todoItemsContainer.innerHTML = "";
+            todoList.forEach(todo => createAndAppendTodo(todo));
+        }
+
+        renderTodoList();
+    </script>
+</body>
+
+</html>
